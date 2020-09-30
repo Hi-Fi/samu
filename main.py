@@ -8,7 +8,6 @@ vowels = "aeiouyäöå"
 @app.route('/v1/samu', methods=['POST'])
 def word_change():
     json_data = request.json
-    splitted = json_data.split()
     return jsonify(change_words(json_data))
 
 def change_words(original):
@@ -36,3 +35,6 @@ def newWords(word1, word2):
     word1_split_index = endOfSwap(word1)
     word2_split_index = endOfSwap(word2)
     return (f"{word2[:word2_split_index+1]}{word1[word1_split_index+1:]}", f"{word1[:word1_split_index+1]}{word2[word2_split_index+1:]}")
+
+if __name__ == '__main__':
+    app.run(threaded=True, port=5000)
