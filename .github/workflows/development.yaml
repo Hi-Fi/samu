@@ -1,0 +1,56 @@
+name: Development testing
+
+on: [push, pull_request]
+
+jobs:
+    test_using_builtin_python:
+  
+      strategy:
+        fail-fast: false
+        matrix:
+          os: [ 'ubuntu-latest', 'macos-latest', 'windows-latest' ]
+          python-version: ['3.6', '3.7', '3.8']
+  
+      runs-on: ${{ matrix.os }}
+
+      name: Python ${{ matrix.python-version }} on ${{ matrix.os }}
+      steps:
+        - uses: actions/checkout@v2
+
+        - name: Setup python ${{ matrix.python-version }} for running the tests
+          uses: actions/setup-python@v2
+          with:
+            python-version: ${{ matrix.python-version }}
+            architecture: 'x64'
+
+        - name: Install pipenv
+          run: pip install pipenv
+
+        - name: Run tests with coverage
+          run: |
+            pipenv install --dev
+            pipenv run test
+            pipenv run acceptance_test
+            pipenv run coverage
+            pipenv run xml_coverage
+
+        - name: SonarCloud Scan
+          uses: sonarsource/sonarcloud-github-action@master
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.8' }} # One report to sonar is enough
+
+    deploy_app:
+        needs: [test_using_builtin_python]
+        if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')
+        runs-on: ubuntu-latest
+        steps:
+          - uses: actions/checkout@v2
+
+          - name: Deploy test version to canary
+            uses: akhileshns/heroku-deploy@17bee3b1538e29b294c261d2aa28d968bf2a26ba # SHA used to be sure that we get something we know for sure
+            with:
+              heroku_api_key: ${{secrets.HEROKU_API_KEY}}
+              heroku_app_name: ${{secrets.HEROKU_APP_NAME}}
+              heroku_email: ${{secrets.HEROKU_EMAIL}}
