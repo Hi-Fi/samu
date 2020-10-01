@@ -40,3 +40,17 @@ jobs:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
             SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.8' }} # One report to sonar is enough
+
+    deploy_app:
+        needs: [test_using_builtin_python]
+        if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')
+        runs-on: ubuntu-latest
+        steps:
+          - uses: actions/checkout@v2
+
+          - name: Deploy test version to canary
+            uses: akhileshns/heroku-deploy@17bee3b1538e29b294c261d2aa28d968bf2a26ba # SHA used to be sure that we get something we know for sure
+            with:
+              heroku_api_key: ${{secrets.HEROKU_API_KEY}}
+              heroku_app_name: ${{secrets.HEROKU_APP_NAME}}
+              heroku_email: ${{secrets.HEROKU_EMAIL}}
